@@ -87,9 +87,17 @@ const AIInsights = () => {
                   className={`rounded-lg border p-4 shadow-sm ${getSentimentColor(insight.sentiment)}`}
                 >
                   <p className="font-semibold mb-2">{insight.headline}</p>
+                  {insight.stock&&(<p className="text-sm mb-1">
+                    Stock: <span className="font-bold capitalize">{insight.stock}</span>
+                  </p>)}
                   <p className="text-sm mb-1">
                     Sentiment: <span className="font-bold capitalize">{insight.sentiment}</span>
                   </p>
+
+                   <p className="text-sm mb-1">
+                    Confidence: <span className="font-bold capitalize">{insight.confidence}</span>
+                  </p>
+
                   <p className="text-xs italic">{insight.reason}</p>
                 </div>
               ))}
