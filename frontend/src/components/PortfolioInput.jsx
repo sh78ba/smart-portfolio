@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { NIFTY_50 } from '../utils/nifty50'
 import { useNews } from '../components/NewsContext'
 
@@ -77,14 +77,19 @@ const PortfolioInput = ({ onUpdate }) => {
   const totalStockPages = Math.ceil(selected.length / STOCKS_PER_PAGE)
   const displayedStocks = selected.slice((portfolioPage - 1) * STOCKS_PER_PAGE, portfolioPage * STOCKS_PER_PAGE)
 
-  // Filtered News for displayed stocks
+  // Compute keywords for current page
   const currentKeywords = displayedStocks.flatMap(s => [s.symbol, s.name])
-  const matchedNews = news.filter(article =>
-    currentKeywords.some(kw =>
-      article.title?.toLowerCase().includes(kw.toLowerCase()) ||
-      article.description?.toLowerCase().includes(kw.toLowerCase())
-    )
-  ).slice(0, NEWS_PER_PAGE) // Max 6 news per page
+
+  // Memoized filtered news
+  const matchedNews = useMemo(() => {
+    if (!news || news.length === 0) return []
+    return news.filter(article =>
+      currentKeywords.some(kw =>
+        article.title?.toLowerCase().includes(kw.toLowerCase()) ||
+        article.description?.toLowerCase().includes(kw.toLowerCase())
+      )
+    ).slice(0, NEWS_PER_PAGE)
+  }, [news, currentKeywords])
 
   return (
     <div className="mb-6 max-w-5xl mx-auto px-4">
@@ -179,7 +184,9 @@ const PortfolioInput = ({ onUpdate }) => {
       )}
 
       {/* News Section */}
-      {matchedNews.length > 0 && (
+      {news.length === 0 ? (
+        <p className="text-center text-gray-500 mt-10">Fetching latest news...</p>
+      ) : matchedNews.length > 0 ? (
         <div className="mt-10">
           <h3 className="text-lg font-semibold mb-4">📌 Matched News for current stocks</h3>
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -201,6 +208,8 @@ const PortfolioInput = ({ onUpdate }) => {
             ))}
           </div>
         </div>
+      ) : (
+        <p className="text-center text-gray-500 mt-10">No news matched your selected stocks yet.</p>
       )}
     </div>
   )
