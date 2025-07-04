@@ -3,6 +3,7 @@ import { NIFTY_50 } from '../utils/nifty50'
 import { useNews } from '../components/NewsContext'
 
 const LOCAL_KEY = 'selectedPortfolio'
+const NEWS_CACHE_KEY = 'matchedNews'
 const STOCKS_PER_PAGE = 5
 const NEWS_PER_PAGE = 6
 
@@ -12,9 +13,8 @@ const PortfolioInput = ({ onUpdate }) => {
   const [selected, setSelected] = useState([])
   const [portfolioPage, setPortfolioPage] = useState(1)
 
-  const { news } = useNews()
+  const { news, loading } = useNews()
 
-  // Load portfolio from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem(LOCAL_KEY)
     if (saved) {
@@ -25,11 +25,9 @@ const PortfolioInput = ({ onUpdate }) => {
     }
   }, [onUpdate])
 
-  // Handle input changes
   const handleChange = (e) => {
     const value = e.target.value
     setInput(value)
-
     if (!value.trim()) return setSuggestions([])
 
     const query = value.toLowerCase()
@@ -37,11 +35,9 @@ const PortfolioInput = ({ onUpdate }) => {
       stock.symbol.toLowerCase().includes(query) ||
       stock.name.toLowerCase().includes(query)
     ).slice(0, 5)
-
     setSuggestions(matches)
   }
 
-  // Select stock
   const handleSelect = (stock) => {
     if (!selected.find(s => s.symbol === stock.symbol)) {
       const updated = [...selected, stock]
@@ -54,7 +50,6 @@ const PortfolioInput = ({ onUpdate }) => {
     }
   }
 
-  // Remove stock
   const handleRemove = (symbol) => {
     const updated = selected.filter(s => s.symbol !== symbol)
     setSelected(updated)
@@ -66,34 +61,39 @@ const PortfolioInput = ({ onUpdate }) => {
     }
   }
 
-  // Truncate description
   const truncateWords = (text, wordLimit = 20) => {
     if (!text) return ''
     const words = text.split(' ')
     return words.length <= wordLimit ? text : words.slice(0, wordLimit).join(' ') + '...'
   }
 
-  // Pagination logic
   const totalStockPages = Math.ceil(selected.length / STOCKS_PER_PAGE)
   const displayedStocks = selected.slice((portfolioPage - 1) * STOCKS_PER_PAGE, portfolioPage * STOCKS_PER_PAGE)
 
-  // Compute keywords for current page
-  const currentKeywords = displayedStocks.flatMap(s => [s.symbol, s.name])
+  const currentKeywords = displayedStocks.flatMap(s => {
+    const nameParts = s.name.split(/\s+/)
+    return [s.symbol, s.name, ...nameParts]
+  })
 
-  // Memoized filtered news
   const matchedNews = useMemo(() => {
-    if (!news || news.length === 0) return []
-    return news.filter(article =>
-      currentKeywords.some(kw =>
-        article.title?.toLowerCase().includes(kw.toLowerCase()) ||
-        article.description?.toLowerCase().includes(kw.toLowerCase())
-      )
-    ).slice(0, NEWS_PER_PAGE)
+    if (!news || news.length === 0 || currentKeywords.length === 0) return []
+
+    const result = news.filter(article => {
+      const text = `${article.title} ${article.description}`.toLowerCase()
+      const newsWords = new Set(text.split(/\W+/))
+      return currentKeywords.some(kw => {
+        const tokens = kw.toLowerCase().split(/\s+/)
+        return tokens.some(token => newsWords.has(token))
+      })
+    }).slice(0, NEWS_PER_PAGE)
+
+    // Store matched news in localStorage
+    localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify(result))
+    return result
   }, [news, currentKeywords])
 
   return (
     <div className="mb-6 max-w-5xl mx-auto px-4">
-      {/* Input */}
       <div className="relative">
         <input
           type="text"
@@ -117,7 +117,6 @@ const PortfolioInput = ({ onUpdate }) => {
         )}
       </div>
 
-      {/* Portfolio Table */}
       {selected.length > 0 && (
         <div className="mt-6">
           <h4 className="text-lg font-semibold mb-4">Your Portfolio</h4>
@@ -158,7 +157,6 @@ const PortfolioInput = ({ onUpdate }) => {
             </table>
           </div>
 
-          {/* Pagination Controls */}
           {totalStockPages > 1 && (
             <div className="mt-4 flex justify-center items-center gap-4">
               <button
@@ -168,9 +166,7 @@ const PortfolioInput = ({ onUpdate }) => {
               >
                 Prev
               </button>
-              <span className="text-sm">
-                Page {portfolioPage} of {totalStockPages}
-              </span>
+              <span className="text-sm">Page {portfolioPage} of {totalStockPages}</span>
               <button
                 onClick={() => setPortfolioPage(p => Math.min(totalStockPages, p + 1))}
                 disabled={portfolioPage === totalStockPages}
@@ -183,9 +179,8 @@ const PortfolioInput = ({ onUpdate }) => {
         </div>
       )}
 
-      {/* News Section */}
-      {news.length === 0 ? (
-        <p className="text-center text-gray-500 mt-10">Fetching latest news...</p>
+      {loading ? (
+        <p className="text-center text-gray-500 mt-10">⏳ Fetching latest news...</p>
       ) : matchedNews.length > 0 ? (
         <div className="mt-10">
           <h3 className="text-lg font-semibold mb-4">📌 Matched News for current stocks</h3>
@@ -200,9 +195,7 @@ const PortfolioInput = ({ onUpdate }) => {
                 >
                   {n.title}
                 </a>
-                <p className="text-sm text-gray-600 mt-2">
-                  {truncateWords(n.description, 20)}
-                </p>
+                <p className="text-sm text-gray-600 mt-2">{truncateWords(n.description, 20)}</p>
                 <p className="text-xs text-gray-400 mt-1">{n.pubDate}</p>
               </div>
             ))}
