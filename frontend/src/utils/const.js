@@ -1,3 +1,3 @@
-export const BACKEND_URL ="http://localhost:5001"
+export const BACKEND_URL ="https://smart-portfolio-backend.onrender.com"
 
 // "https://smart-portfolio-backend.onrender.com";
