@@ -28,6 +28,6 @@ export const fetchAllFeeds = async () => {
     }
   }
 
-  return allNews.slice(0, 50);
+  return allNews.slice(0, 30);
 };
 
