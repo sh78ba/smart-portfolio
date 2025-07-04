@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, useContext } from 'react'
 import axios from 'axios'
+import { BACKEND_URL } from '../utils/const'
 
 const NewsContext = createContext()
 
@@ -9,7 +10,7 @@ export const NewsProvider = ({ children }) => {
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        const res = await axios.get('http://localhost:5001/api/news')
+        const res = await axios.get(BACKEND_URL+'/api/news')
         setNews(res.data)
       } catch (err) {
         console.error('News fetch failed:', err.message)
