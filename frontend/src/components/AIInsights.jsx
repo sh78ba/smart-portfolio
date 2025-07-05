@@ -4,6 +4,7 @@ import { BACKEND_URL } from '../utils/const'
 
 const LOCAL_KEY = 'selectedPortfolio'
 const NEWS_CACHE_KEY = 'matchedNews'
+const ITEMS_PER_PAGE = 6 // 6 cards per page
 
 const getSentimentColor = (sentiment) => {
   switch (sentiment.toLowerCase()) {
@@ -16,11 +17,14 @@ const getSentimentColor = (sentiment) => {
   }
 }
 
+
+
 const AIInsights = () => {
   const [insights, setInsights] = useState([])
   const [summary, setSummary] = useState('')
   const [portfolio, setPortfolio] = useState([])
   const [loading, setLoading] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     const savedPortfolio = localStorage.getItem(LOCAL_KEY)
@@ -54,6 +58,7 @@ const AIInsights = () => {
         const data = res.data || []
         setInsights(data.filter(item => item.headline))
         setSummary(data.find(item => item.summary)?.summary || '')
+        setCurrentPage(1) // Reset to first page when data updates
       } catch (err) {
         console.error('AI Analysis failed:', err.message)
       } finally {
@@ -64,12 +69,21 @@ const AIInsights = () => {
     fetchInsights()
   }, [portfolio])
 
+  // Pagination Logic
+  const totalPages = Math.ceil(insights.length / ITEMS_PER_PAGE)
+  const paginatedInsights = insights.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  )
+
   return (
-    <div className="mt-10 max-w-5xl mx-auto px-4">
-      <h2 className="text-2xl font-bold text-blue-700 mb-6">🧠 AI Insights</h2>
+    <div className="my-5 max-w-5xl mx-auto px-4">
+      <h2 className="text-2xl font-bold mb-6 text-center">🧠 AI Insights</h2>
 
       {loading ? (
-        <div className="text-center text-gray-500 mt-10">⏳ Generating insights based on your portfolio...</div>
+        <div className="text-center text-gray-500 mt-10">
+          ⏳ Generating insights based on your portfolio...
+        </div>
       ) : (
         <>
           {summary && (
@@ -80,30 +94,72 @@ const AIInsights = () => {
           )}
 
           {insights.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {insights.map((insight, idx) => (
-                <div
-                  key={idx}
-                  className={`rounded-lg border p-4 shadow-sm ${getSentimentColor(insight.sentiment)}`}
-                >
-                  <p className="font-semibold mb-2">{insight.headline}</p>
-                  {insight.stock&&(<p className="text-sm mb-1">
-                    Stock: <span className="font-bold capitalize">{insight.stock}</span>
-                  </p>)}
-                  <p className="text-sm mb-1">
-                    Sentiment: <span className="font-bold capitalize">{insight.sentiment}</span>
-                  </p>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {paginatedInsights.map((insight, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex items-start gap-4 p-4 border rounded-md shadow-sm hover:scale-105 hover:shadow-blue-400 hover:shadow-md transition duration-500 ease-in-out bg-gray-50 ${getSentimentColor(insight.sentiment)}`}
+                  >
+                    <div className="w-12 h-12 flex items-center justify-center bg-blue-100 rounded-md">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        height="24"
+                        width="24"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        className="text-blue-600"
+                      >
+                        <path d="M12 2L15 8H9L12 2ZM2 12L8 15V9L2 12ZM12 22L9 16H15L12 22ZM22 12L16 9V15L22 12Z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-800 mb-1">{insight.headline}</p>
+                      {insight.stock && (
+                        <p className="text-sm text-gray-600 mb-0.5">
+                          <span className="font-medium">Stock:</span>{" "}
+                          <span className="capitalize font-semibold">{insight.stock}</span>
+                        </p>
+                      )}
+                      <p className="text-sm text-gray-600 mb-0.5">
+                        <span className="font-medium">Sentiment:</span>{" "}
+                        <span className="capitalize font-semibold">{insight.sentiment}</span>
+                      </p>
+                      <p className="text-sm text-gray-600 mb-0.5">
+                        <span className="font-medium">Confidence:</span>{" "}
+                        <span className="capitalize font-semibold">{insight.confidence}</span>
+                      </p>
+                      <p className="text-xs text-gray-500 italic mt-1">{insight.reason}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-                   <p className="text-sm mb-1">
-                    Confidence: <span className="font-bold capitalize">{insight.confidence}</span>
-                  </p>
-
-                  <p className="text-xs italic">{insight.reason}</p>
+              {/* Pagination Buttons */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-6">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border rounded disabled:opacity-50"
+                  >
+                    ◀ Prev
+                  </button>
+                  <span className="text-sm">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 border rounded disabled:opacity-50"
+                  >
+                    Next ▶
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           ) : (
-            <div className="text-center text-gray-600 italic mt-10">
+            <div className="text-center text-gray-500 italic mt-10">
               No relevant news found for your portfolio.
             </div>
           )}

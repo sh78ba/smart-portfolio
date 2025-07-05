@@ -11,14 +11,14 @@ const App = () => {
   return (
   <div className="min-h-screen bg-gray-100">
     <Header/>
-     <div className='pt-14'>
+     <div className='py-2'>
        <Routes>
         
          <Route path='/' element={<GeneralNews/>}/>
 
-         {/* <Route path='/portfolio' element={<PortfolioInput onUpdate={setPortfolio}/>}/> */}
+      
       <Route path='/portfolio' element={<PortfolioInput onUpdate={setPortfolio}/>}/>
-        {/* <Route path='/portfolio' element={<NewsFeed portfolio={portfolio} />}/> */}
+    
         <Route path='/insights' element={<AIInsights portfolio={portfolio} />}/>
        </Routes>
 

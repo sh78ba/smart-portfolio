@@ -1,3 +1,214 @@
+// import React, { useEffect, useState, useMemo } from 'react'
+// import { NIFTY_50 } from '../utils/nifty50'
+// import { useNews } from '../components/NewsContext'
+
+// const LOCAL_KEY = 'selectedPortfolio'
+// const NEWS_CACHE_KEY = 'matchedNews'
+// const STOCKS_PER_PAGE = 5
+// const NEWS_PER_PAGE = 6
+
+// const PortfolioInput = ({ onUpdate }) => {
+//   const [input, setInput] = useState('')
+//   const [suggestions, setSuggestions] = useState([])
+//   const [selected, setSelected] = useState([])
+//   const [portfolioPage, setPortfolioPage] = useState(1)
+
+//   const { news, loading } = useNews()
+
+//   useEffect(() => {
+//     const saved = localStorage.getItem(LOCAL_KEY)
+//     if (saved) {
+//       const parsed = JSON.parse(saved)
+//       setSelected(parsed)
+//       const keywords = parsed.flatMap(s => [s.symbol, s.name])
+//       onUpdate(keywords)
+//     }
+//   }, [onUpdate])
+
+//   const handleChange = (e) => {
+//     const value = e.target.value
+//     setInput(value)
+//     if (!value.trim()) return setSuggestions([])
+
+//     const query = value.toLowerCase()
+//     const matches = NIFTY_50.filter(stock =>
+//       stock.symbol.toLowerCase().includes(query) ||
+//       stock.name.toLowerCase().includes(query)
+//     ).slice(0, 5)
+//     setSuggestions(matches)
+//   }
+
+//   const handleSelect = (stock) => {
+//     if (!selected.find(s => s.symbol === stock.symbol)) {
+//       const updated = [...selected, stock]
+//       setSelected(updated)
+//       setSuggestions([])
+//       setInput('')
+//       localStorage.setItem(LOCAL_KEY, JSON.stringify(updated))
+//       const keywords = updated.flatMap(s => [s.symbol, s.name])
+//       onUpdate(keywords)
+//     }
+//   }
+
+//   const handleRemove = (symbol) => {
+//     const updated = selected.filter(s => s.symbol !== symbol)
+//     setSelected(updated)
+//     localStorage.setItem(LOCAL_KEY, JSON.stringify(updated))
+//     const keywords = updated.flatMap(s => [s.symbol, s.name])
+//     onUpdate(keywords)
+//     if ((portfolioPage - 1) * STOCKS_PER_PAGE >= updated.length && portfolioPage > 1) {
+//       setPortfolioPage(portfolioPage - 1)
+//     }
+//   }
+
+//   const truncateWords = (text, wordLimit = 20) => {
+//     if (!text) return ''
+//     const words = text.split(' ')
+//     return words.length <= wordLimit ? text : words.slice(0, wordLimit).join(' ') + '...'
+//   }
+
+//   const totalStockPages = Math.ceil(selected.length / STOCKS_PER_PAGE)
+//   const displayedStocks = selected.slice((portfolioPage - 1) * STOCKS_PER_PAGE, portfolioPage * STOCKS_PER_PAGE)
+
+//   const currentKeywords = displayedStocks.flatMap(s => {
+//     const nameParts = s.name.split(/\s+/)
+//     return [s.symbol, s.name, ...nameParts]
+//   })
+
+//   const matchedNews = useMemo(() => {
+//     if (!news || news.length === 0 || currentKeywords.length === 0) return []
+
+//     const result = news.filter(article => {
+//       const text = `${article.title} ${article.description}`.toLowerCase()
+//       const newsWords = new Set(text.split(/\W+/))
+//       return currentKeywords.some(kw => {
+//         const tokens = kw.toLowerCase().split(/\s+/)
+//         return tokens.some(token => newsWords.has(token))
+//       })
+//     }).slice(0, NEWS_PER_PAGE)
+
+//     // Store matched news in localStorage
+//     localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify(result))
+//     return result
+//   }, [news, currentKeywords])
+
+//   return (
+//     <div className="mb-6 max-w-5xl mx-auto px-4">
+//       <div className="relative">
+//         <input
+//           type="text"
+//           placeholder="Search and add stocks.."
+//           className="w-full px-4 py-2 rounded border"
+//           value={input}
+//           onChange={handleChange}
+//         />
+//         {suggestions.length > 0 && (
+//           <ul className="absolute bg-white border rounded mt-1 w-full z-10 max-h-48 overflow-y-auto">
+//             {suggestions.map(stock => (
+//               <li
+//                 key={stock.symbol}
+//                 onClick={() => handleSelect(stock)}
+//                 className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+//               >
+//                 {stock.name} ({stock.symbol})
+//               </li>
+//             ))}
+//           </ul>
+//         )}
+//       </div>
+
+//       {selected.length > 0 && (
+//         <div className="mt-6">
+//           <h4 className="text-lg font-semibold mb-4">Portfolio</h4>
+//           <div className="bg-white rounded shadow overflow-x-auto">
+//             <table className="w-full table-auto">
+//               <thead className="bg-gray-100 text-left text-sm text-gray-700">
+//                 <tr>
+//                   <th className="px-4 py-2">Stock Name</th>
+//                   <th className="px-4 py-2">Symbol</th>
+//                   <th className="px-4 py-2">Qty</th>
+//                   <th className="px-4 py-2">Est. Value</th>
+//                   <th className="px-4 py-2">Action</th>
+//                 </tr>
+//               </thead>
+//               <tbody className="text-sm">
+//                 {displayedStocks.map((stock, idx) => {
+//                   const qty = 10
+//                   const estValue = (idx + 1) * 1500
+//                   return (
+//                     <tr key={stock.symbol} className="border-t hover:bg-gray-50">
+//                       <td className="px-4 py-2">{stock.name}</td>
+//                       <td className="px-4 py-2 font-semibold">{stock.symbol}</td>
+//                       <td className="px-4 py-2 text-center">{qty}</td>
+//                       <td className="px-4 py-2 text-green-600 text-center">₹{estValue}</td>
+//                       <td className="px-4 py-2 text-center">
+//                         <button
+//                           onClick={() => handleRemove(stock.symbol)}
+//                           className="text-red-500 hover:text-red-700"
+//                           title="Remove"
+//                         >
+//                           🗑️
+//                         </button>
+//                       </td>
+//                     </tr>
+//                   )
+//                 })}
+//               </tbody>
+//             </table>
+//           </div>
+
+//           {totalStockPages > 1 && (
+//             <div className="mt-4 flex justify-center items-center gap-4 ">
+//               <button
+//                 onClick={() => setPortfolioPage(p => Math.max(1, p - 1))}
+//                 disabled={portfolioPage === 1}
+//                 className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+//               >
+//                 Prev
+//               </button>
+//               <span className="text-sm">Page {portfolioPage} of {totalStockPages}</span>
+//               <button
+//                 onClick={() => setPortfolioPage(p => Math.min(totalStockPages, p + 1))}
+//                 disabled={portfolioPage === totalStockPages}
+//                 className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+//               >
+//                 Next
+//               </button>
+//             </div>
+//           )}
+//         </div>
+//       )}
+
+//       {loading ? (
+//         <p className="text-center text-gray-500 mt-10">⏳ Fetching latest news...</p>
+//       ) : matchedNews.length > 0 ? (
+//         <div className="mt-5">
+//           <h3 className="text-lg font-semibold mb-4">📌 Matched News for current stocks</h3>
+//           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ">
+//             {matchedNews.map((n, idx) => (
+//               <div key={idx} className="bg-white p-4 rounded-lg border shadow-sm hover:scale-105 hover:shadow-blue-400 hover:shadow-md transition duration-500 ease-in-out">
+//                 <a
+//                   href={n.link}
+//                   className="text-blue-500  hover:text-blue-700 text-md font-bold transition duration-500 ease-in-out"
+//                   target="_blank"
+//                   rel="noopener noreferrer"
+//                 >
+//                   {n.title}
+//                 </a>
+//                 <p className="text-sm italic  text-gray-600 mt-2">{truncateWords(n.description, 20)}</p>
+          
+//               </div>
+//             ))}
+//           </div>
+//         </div>
+//       ) : (
+//         <p className="text-center text-gray-500 mt-10">No news matched your selected stocks yet.</p>
+//       )}
+//     </div>
+//   )
+// }
+
+// export default PortfolioInput
 import React, { useEffect, useState, useMemo } from 'react'
 import { NIFTY_50 } from '../utils/nifty50'
 import { useNews } from '../components/NewsContext'
@@ -11,7 +222,7 @@ const PortfolioInput = ({ onUpdate }) => {
   const [input, setInput] = useState('')
   const [suggestions, setSuggestions] = useState([])
   const [selected, setSelected] = useState([])
-  const [portfolioPage, setPortfolioPage] = useState(1)
+  const [page, setPage] = useState(1)
 
   const { news, loading } = useNews()
 
@@ -56,8 +267,8 @@ const PortfolioInput = ({ onUpdate }) => {
     localStorage.setItem(LOCAL_KEY, JSON.stringify(updated))
     const keywords = updated.flatMap(s => [s.symbol, s.name])
     onUpdate(keywords)
-    if ((portfolioPage - 1) * STOCKS_PER_PAGE >= updated.length && portfolioPage > 1) {
-      setPortfolioPage(portfolioPage - 1)
+    if ((page - 1) * STOCKS_PER_PAGE >= updated.length && page > 1) {
+      setPage(page - 1)
     }
   }
 
@@ -67,37 +278,42 @@ const PortfolioInput = ({ onUpdate }) => {
     return words.length <= wordLimit ? text : words.slice(0, wordLimit).join(' ') + '...'
   }
 
-  const totalStockPages = Math.ceil(selected.length / STOCKS_PER_PAGE)
-  const displayedStocks = selected.slice((portfolioPage - 1) * STOCKS_PER_PAGE, portfolioPage * STOCKS_PER_PAGE)
-
-  const currentKeywords = displayedStocks.flatMap(s => {
-    const nameParts = s.name.split(/\s+/)
-    return [s.symbol, s.name, ...nameParts]
-  })
-
   const matchedNews = useMemo(() => {
-    if (!news || news.length === 0 || currentKeywords.length === 0) return []
+    if (!news || news.length === 0 || selected.length === 0) return []
+
+    const keywords = selected.flatMap(s => {
+      const nameParts = s.name.split(/\s+/)
+      return [s.symbol, s.name, ...nameParts]
+    })
 
     const result = news.filter(article => {
       const text = `${article.title} ${article.description}`.toLowerCase()
       const newsWords = new Set(text.split(/\W+/))
-      return currentKeywords.some(kw => {
+      return keywords.some(kw => {
         const tokens = kw.toLowerCase().split(/\s+/)
         return tokens.some(token => newsWords.has(token))
       })
-    }).slice(0, NEWS_PER_PAGE)
+    })
 
-    // Store matched news in localStorage
     localStorage.setItem(NEWS_CACHE_KEY, JSON.stringify(result))
     return result
-  }, [news, currentKeywords])
+  }, [news, selected])
+
+  const totalPages = Math.max(
+    Math.ceil(selected.length / STOCKS_PER_PAGE),
+    Math.ceil(matchedNews.length / NEWS_PER_PAGE)
+  )
+
+  const paginatedStocks = selected.slice((page - 1) * STOCKS_PER_PAGE, page * STOCKS_PER_PAGE)
+  const paginatedNews = matchedNews.slice((page - 1) * NEWS_PER_PAGE, page * NEWS_PER_PAGE)
 
   return (
     <div className="mb-6 max-w-5xl mx-auto px-4">
+      {/* Input Search */}
       <div className="relative">
         <input
           type="text"
-          placeholder="Search and add NIFTY50 stocks"
+          placeholder="Search and add stocks.."
           className="w-full px-4 py-2 rounded border"
           value={input}
           onChange={handleChange}
@@ -117,9 +333,10 @@ const PortfolioInput = ({ onUpdate }) => {
         )}
       </div>
 
+      {/* Portfolio Table */}
       {selected.length > 0 && (
         <div className="mt-6">
-          <h4 className="text-lg font-semibold mb-4">Your Portfolio</h4>
+          <h4 className="text-lg font-semibold mb-4">Portfolio</h4>
           <div className="bg-white rounded shadow overflow-x-auto">
             <table className="w-full table-auto">
               <thead className="bg-gray-100 text-left text-sm text-gray-700">
@@ -132,7 +349,7 @@ const PortfolioInput = ({ onUpdate }) => {
                 </tr>
               </thead>
               <tbody className="text-sm">
-                {displayedStocks.map((stock, idx) => {
+                {paginatedStocks.map((stock, idx) => {
                   const qty = 10
                   const estValue = (idx + 1) * 1500
                   return (
@@ -156,53 +373,54 @@ const PortfolioInput = ({ onUpdate }) => {
               </tbody>
             </table>
           </div>
-
-          {totalStockPages > 1 && (
-            <div className="mt-4 flex justify-center items-center gap-4">
-              <button
-                onClick={() => setPortfolioPage(p => Math.max(1, p - 1))}
-                disabled={portfolioPage === 1}
-                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <span className="text-sm">Page {portfolioPage} of {totalStockPages}</span>
-              <button
-                onClick={() => setPortfolioPage(p => Math.min(totalStockPages, p + 1))}
-                disabled={portfolioPage === totalStockPages}
-                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          )}
         </div>
       )}
 
+      {/* News */}
       {loading ? (
         <p className="text-center text-gray-500 mt-10">⏳ Fetching latest news...</p>
-      ) : matchedNews.length > 0 ? (
-        <div className="mt-10">
+      ) : paginatedNews.length > 0 ? (
+        <div className="mt-6">
           <h3 className="text-lg font-semibold mb-4">📌 Matched News for current stocks</h3>
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {matchedNews.map((n, idx) => (
-              <div key={idx} className="bg-white p-4 rounded-lg shadow border">
+            {paginatedNews.map((n, idx) => (
+              <div key={idx} className="bg-white p-4 rounded-lg border shadow-sm hover:scale-105 hover:shadow-blue-400 hover:shadow-md transition duration-500 ease-in-out">
                 <a
                   href={n.link}
-                  className="text-blue-700 font-bold"
+                  className="text-blue-500 hover:text-blue-700 text-md font-bold transition duration-500 ease-in-out"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   {n.title}
                 </a>
-                <p className="text-sm text-gray-600 mt-2">{truncateWords(n.description, 20)}</p>
-                <p className="text-xs text-gray-400 mt-1">{n.pubDate}</p>
+                <p className="text-sm italic text-gray-600 mt-2">{truncateWords(n.description, 20)}</p>
               </div>
             ))}
           </div>
         </div>
       ) : (
         <p className="text-center text-gray-500 mt-10">No news matched your selected stocks yet.</p>
+      )}
+
+      {/* Unified Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-8 flex justify-center items-center gap-4">
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+          >
+            Prev
+          </button>
+          <span className="text-sm">Page {page} of {totalPages}</span>
+          <button
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
       )}
     </div>
   )
